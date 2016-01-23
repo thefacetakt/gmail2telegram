@@ -50,7 +50,7 @@ def get_credentials():
     return credentials
 
 def downloadAttachment(service, part, messageId):
-    attachmentId = part["body"]["attachmentId"]
+    attachmentId = part['body']['attachmentId']
     result = service.users().messages().attachments().get(userId='me',
         messageId=messageId, id=attachmentId).execute()
     directory = ATTACHMENTS_FOLDER + messageId + '/'
@@ -78,22 +78,28 @@ def get_message(service, id):
     parts = result['payload']["parts"]
     printParts(service, parts, id)
 
-def get_messages_list(service):
+def addMessagesFromRespone(response, messages, sinceId):
+    if 'messages' in response:
+        for i in range(len(response['messages'])):
+            if response['messages'][i]['id'] == sinceId:
+                messages.extend(response['messages'][:i + 1])
+                return True
+        messages.extend(response['messages'])
+    return False
+
+def get_messages_list(service, sinceId=None):
     response = service.users().messages().list(userId='me').execute()
     messages = []
-    if 'messages' in response:
-        messages.extend(response['messages'])
+    if addMessagesFromRespone(response, messages, sinceId):
+        return messages
 
     while 'nextPageToken' in response:
         page_token = response['nextPageToken']
         response = service.users().messages().list(userId='me',
                                          pageToken=page_token).execute()
-        print(response['messages'])
-        messages.extend(response['messages'])
-    print(messages)
+        if addMessagesFromRespone(response, messages, sinceId):
+            return messages
     return messages
-
-
 
 def main():
     """Shows basic usage of the Gmail API.
@@ -104,8 +110,8 @@ def main():
     credentials = get_credentials()
     http = credentials.authorize(httplib2.Http())
     service = discovery.build('gmail', 'v1', http=http)
-    get_message(service, '1515f387190791b6')
-    get_messages_list(service)
+    print(*get_messages_list(service, '152696e789999f1d'), sep='\n')
+    #get_message(service, '1515f387190791b6')
     #get_messages_list(service)
 
 

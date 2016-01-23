@@ -12,7 +12,7 @@ import config
 
 class GmailGetter:
     @staticmethod
-    def get_credentials(path):
+    def getCredentials(path):
         """Gets valid user credentials from storage.
         If nothing has been stored, or if the stored credentials are invalid,
         the OAuth2 flow is completed to obtain the new credentials.
@@ -20,29 +20,29 @@ class GmailGetter:
         Returns:
             Credentials, the obtained credential.
         """
-        credential_dir = os.path.join(path, '.credentials')
-        if not os.path.exists(credential_dir):
-            os.makedirs(credential_dir)
-        credential_path = os.path.join(credential_dir,
+        credentialDir = os.path.join(path, '.credentials')
+        if not os.path.exists(credentialDir):
+            os.makedirs(credentialDir)
+        credentialPath = os.path.join(credentialDir,
                                        'gmail2telegram.json')
 
-        store = oauth2client.file.Storage(credential_path)
+        store = oauth2client.file.Storage(credentialPath)
         credentials = store.get()
         if not credentials or credentials.invalid:
             flow = client.flow_from_clientsecrets(config.CLIENT_SECRET_FILE,
                 config.SCOPES)
             flow.user_agent = config.APPLICATION_NAME
-            print('Storing credentials to ' + credential_path)
+            print('Storing credentials to ' + credentialPath)
         return credentials
 
     def __init__(self, currentClient):
-        currennt_path = os.path.join(os.getcwd(), currentClient)
-        if not os.path.exists(currennt_path):
-            os.makedirs(currennt_path)
-        credentials = GmailGetter.get_credentials(currennt_path)
+        currentPath = os.path.join(config.WORKING_DIRECTORY, currentClient)
+        if not os.path.exists(currentPath):
+            os.makedirs(currentPath)
+        credentials = GmailGetter.getCredentials(currentPath)
         http = credentials.authorize(httplib2.Http())
         self.service = discovery.build('gmail', 'v1', http=http)
-        self.ATTACHMENTS_FOLDER = os.path.join(currennt_path, 'attachments/')
+        self.ATTACHMENTS_FOLDER = os.path.join(currentPath, 'attachments/')
 
     @staticmethod
     def addMessagesFromRespone(response, messages, sinceId):
@@ -54,7 +54,7 @@ class GmailGetter:
             messages.extend(response['messages'])
         return False
 
-    def get_messages_list(self, sinceId=None):
+    def getMessagesList(self, sinceId=None):
         response = self.service.users().messages().list(userId='me').execute()
         messages = []
         if GmailGetter.addMessagesFromRespone(response, messages, sinceId):
@@ -88,12 +88,12 @@ class GmailGetter:
             elif "data" in i["body"]:
                 if (i["mimeType"] == "text/plain"):
                     print(base64.urlsafe_b64decode(i["body"]["data"]
-                        .encode('UTF-8')).decode("UTF-8"))
+                        .encode("UTF-8")).decode("UTF-8"))
             elif "attachmentId" in i["body"]:
                 print(i["filename"])
                 self.downloadAttachment(i, messageId)
 
-    def get_message(self, id):
-        result = self.service.users().messages().get(userId='me', id=id).execute()
-        parts = result['payload']["parts"]
+    def getMessage(self, id):
+        result = self.service.users().messages().get(userId="me", id=id).execute()
+        parts = result["payload"]["parts"]
         self.printParts(parts, id)

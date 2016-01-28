@@ -6,8 +6,8 @@ def main():
     Creates a Gmail API service object and outputs a list of label names
     of the user's Gmail account.
     """
-    Gmail2TelegramClient("1234") #a person
-    Gmail2TelegramClient("-1234") #group chat
+    #Gmail2TelegramClient("1234") -- a person
+    #Gmail2TelegramClient("-1234") -- group chat
 
 if __name__ == "__main__":
     main()

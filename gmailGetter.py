@@ -10,6 +10,12 @@ import base64
 
 import config
 
+try:
+    import argparse
+    flags = argparse.ArgumentParser(parents=[tools.argparser]).parse_args()
+except ImportError:
+    flags = None
+
 class GmailGetter:
     @staticmethod
     def getCredentials(path):
@@ -32,30 +38,33 @@ class GmailGetter:
             flow = client.flow_from_clientsecrets(config.CLIENT_SECRET_FILE,
                 config.SCOPES)
             flow.user_agent = config.APPLICATION_NAME
+            credentials = tools.run_flow(flow, store, flags)
             print("Storing credentials to " + credentialPath)
         return credentials
 
     def __init__(self, currentClient):
-        currentPath = os.path.join(config.WORKING_DIRECTORY, currentClient)
-        if not os.path.exists(currentPath):
-            os.makedirs(currentPath)
-        credentials = GmailGetter.getCredentials(currentPath)
+        self.currentPath = os.path.join(config.WORKING_DIRECTORY,
+            "chat" + currentClient)
+        if not os.path.exists(self.currentPath):
+            os.makedirs(self.currentPath)
+        credentials = GmailGetter.getCredentials(self.currentPath)
         http = credentials.authorize(httplib2.Http())
         self.service = discovery.build("gmail", "v1", http=http)
-        self.ATTACHMENTS_FOLDER = os.path.join(currentPath, "attachments/")
+        self.ATTACHMENTS_FOLDER = os.path.join(self.currentPath, "attachments/")
 
     @staticmethod
     def addMessagesFromRespone(response, messages, sinceId):
         if "messages" in response:
             for i in range(len(response["messages"])):
                 if response["messages"][i]["id"] == sinceId:
-                    messages.extend(response["messages"][:i + 1])
+                    messages.extend(response["messages"][:i])
                     return True
             messages.extend(response["messages"])
         return False
 
     def getMessagesList(self, sinceId=None):
-        response = self.service.users().messages().list(userId="me").execute()
+        response = self.service.users().messages().list(userId="me",
+            q="is:inbox").execute()
         messages = []
         if GmailGetter.addMessagesFromRespone(response, messages, sinceId):
             return messages
@@ -101,5 +110,8 @@ class GmailGetter:
     def getMessage(self, id):
         result = self.service.users().messages().get(userId="me",
             id=id).execute()
-        parts = result["payload"]["parts"]
-        self.printParts(parts, id)
+        if ("parts" in result["payload"]):
+            parts = result["payload"]["parts"]
+            self.printParts(parts, id)
+            return True
+        return False
